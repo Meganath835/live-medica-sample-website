@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Medica &mdash; Radiology Intelligence</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+/* Auth guard — runs before anything renders */
+(async () => {
+  try {
+    const res = await fetch('/auth/me');
+    if (!res.ok) { window.location.replace('/login.html'); return; }
+    const { user } = await res.json();
+    window.__authUser = user;
+  } catch {
+    window.location.replace('/login.html');
+  }
+})();
+</script>
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <div class="brand-icon">+</div>
+    <div class="brand-text">
+      <span class="brand-name">live medica</span>
+      <span class="brand-tagline">Radiology Intelligence</span>
+    </div>
+  </div>
+  <div class="nav-center">
+    <div class="search-box">
+      <span class="search-icon">&#128269;</span>
+      <input type="text" placeholder="Search studies, patients, reports...">
+      <kbd>#</kbd>
+    </div>
+    <div class="date-range-bar">
+      <span>From</span>
+      <span class="arrow">&rarr;</span>
+      <span>To</span>
+      <span class="cal-icon">&#128197;</span>
+    </div>
+  </div>
+  <div class="nav-right">
+    <button class="nav-icon-btn" title="Apps">&#8862;</button>
+    <div class="user-info">
+      <span class="welcome">Welcome</span>
+      <span class="username" id="navUsername">&#8230;</span>
+    </div>
+    <button class="nav-icon-btn" id="logoutBtn" title="Sign Out" onclick="signOut()" style="background:#2D2D4A;color:#CBD5E1;font-size:18px">&#9211;</button>
+  </div>
+</nav>
+
+<!-- ===== SUB NAV ===== -->
+<div class="sub-nav">
+  <div class="dashboard-tabs">
+    <button class="tab-btn active" data-tab="operations">Operations</button>
+    <button class="tab-btn" data-tab="analytics">Analytics</button>
+    <button class="tab-btn" data-tab="system-health">System</button>
+    <button class="tab-btn" data-tab="radiologist">Radiologist</button>
+  </div>
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label>DATE RANGE</label>
+      <select class="filter-select">
+        <option>Last 7 Days</option>
+        <option>Last 30 Days</option>
+        <option>Last 90 Days</option>
+        <option>Custom Range</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>SITE</label>
+      <select class="filter-select">
+        <option>Global</option>
+        <option>Main Campus</option>
+        <option>Clinic North</option>
+        <option>Data Center 01</option>
+      </select>
+    </div>
+    <button class="export-btn">Export Data</button>
+  </div>
+</div>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="main-content">
+
+  <!-- =============================== -->
+  <!-- OPERATIONS DASHBOARD            -->
+  <!-- =============================== -->
+  <div id="operations" class="dashboard-page active">
+
+    <!-- Stat Cards -->
+    <div class="stat-cards-grid cols-4">
+      <div class="stat-card">
+        <div class="stat-label">Total Studies</div>
+        <div class="stat-value">987</div>
+        <div class="stat-delta negative">&#8595; 4% <span>vs yesterday</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Turnaround Time</div>
+        <div class="stat-value">52 <span class="unit">mins</span></div>
+        <div class="stat-delta negative">&#8593; 9 mins <span>vs 7-day avg</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Radiologist Utilization</div>
+        <div class="stat-value">74%</div>
+        <div class="utilization-bar">
+          <div class="bar-fill" style="width:74%"></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Modalities</div>
+        <div class="stat-value">6 <span class="unit">/ 9</span></div>
+        <div class="stat-note">3 Down &mdash; <span class="note-link">PET Suite Calibration</span></div>
+      </div>
+    </div>
+
+    <!-- Modality Overview + Procedures Table -->
+    <div class="section-grid cols-mod">
+      <div class="chart-card">
+        <div class="card-title">Modality Utilization Overview</div>
+        <div class="modality-list">
+          <div class="modality-item">
+            <span class="mod-name">CT</span>
+            <div class="mod-bar-track"><div class="mod-bar green" style="width:76%"></div></div>
+            <span class="mod-pct">76%</span>
+          </div>
+          <div class="modality-item">
+            <span class="mod-name">MRI</span>
+            <div class="mod-bar-track"><div class="mod-bar green" style="width:91%"></div></div>
+            <span class="mod-pct">91%</span>
+          </div>
+          <div class="modality-item">
+            <span class="mod-name">CR</span>
+            <div class="mod-bar-track"><div class="mod-bar green" style="width:85%"></div></div>
+            <span class="mod-pct">85%</span>
+          </div>
+          <div class="modality-item">
+            <span class="mod-name">US</span>
+            <div class="mod-bar-track"><div class="mod-bar purple" style="width:54%"></div></div>
+            <span class="mod-pct">54%</span>
+          </div>
+          <div class="modality-item">
+            <span class="mod-name">MG</span>
+            <div class="mod-bar-track"><div class="mod-bar purple" style="width:68%"></div></div>
+            <span class="mod-pct">68%</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Procedures vs Daily Capacity</div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Modality</th><th>Daily Capacity</th><th>Performed</th><th>Utilization</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>CT</td><td>100</td><td>76</td>
+              <td><div class="inline-bar-wrap"><div class="inline-bar-track"><div class="inline-bar green" style="width:76%"></div></div><span class="pct-text">76%</span></div></td>
+            </tr>
+            <tr>
+              <td>MRI</td><td>60</td><td>55</td>
+              <td><div class="inline-bar-wrap"><div class="inline-bar-track"><div class="inline-bar green" style="width:91%"></div></div><span class="pct-text">91%</span></div></td>
+            </tr>
+            <tr>
+              <td>CR</td><td>400</td><td>340</td>
+              <td><div class="inline-bar-wrap"><div class="inline-bar-track"><div class="inline-bar green" style="width:85%"></div></div><span class="pct-text">85%</span></div></td>
+            </tr>
+            <tr>
+              <td>US</td><td>120</td><td>65</td>
+              <td><div class="inline-bar-wrap"><div class="inline-bar-track"><div class="inline-bar purple" style="width:54%"></div></div><span class="pct-text">54%</span></div></td>
+            </tr>
+            <tr>
+              <td>MG</td><td>50</td><td>34</td>
+              <td><div class="inline-bar-wrap"><div class="inline-bar-track"><div class="inline-bar purple" style="width:68%"></div></div><span class="pct-text">68%</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Reporting + Critical + Resource -->
+    <div class="section-grid cols-3">
+      <div class="chart-card">
+        <div class="card-title">Reporting Performance</div>
+        <div class="metric-item">
+          <div class="metric-name">Avg TAT (Report Turnaround Time)</div>
+          <div class="metric-value">52 <span class="unit">min</span></div>
+        </div>
+        <div class="divider"></div>
+        <div class="metric-item">
+          <div class="metric-name">TAT Compliance</div>
+          <div class="metric-value">79% <span class="unit" style="font-size:12px">within SLA</span></div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Critical Response Metrics</div>
+        <div class="metric-item">
+          <div class="metric-name">STAT Achievement Rate</div>
+          <div class="metric-value">87%</div>
+        </div>
+        <div class="divider"></div>
+        <div class="metric-item">
+          <div class="metric-name">Critical Alert Response Time</div>
+          <div class="metric-row">
+            <span class="metric-icon">&#128336;</span>
+            <span class="metric-big">8.2</span>
+            <span class="metric-unit">min avg</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Resource Load</div>
+        <div class="metric-item">
+          <div class="metric-name">Radiologists On Duty</div>
+          <div class="metric-value">9</div>
+        </div>
+        <div class="divider"></div>
+        <div class="metric-item">
+          <div class="metric-name">Technologists On Duty</div>
+          <div class="metric-value">22</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Study Data Management Events -->
+    <div class="section-label">Study Data Management Events</div>
+    <div class="section-grid cols-4" style="margin-bottom:16px">
+      <div class="event-card">
+        <div class="event-title">Study Merges</div>
+        <div class="event-value">28</div>
+        <div class="event-icon">&#128279;</div>
+      </div>
+      <div class="event-card">
+        <div class="event-title">Study Splits</div>
+        <div class="event-value">11</div>
+        <div class="event-icon">&#9974;</div>
+      </div>
+      <div class="event-card">
+        <div class="event-title">Duplicate Alerts</div>
+        <div class="event-value">19</div>
+        <div class="event-icon">&#128196;</div>
+      </div>
+      <div class="event-card">
+        <div class="event-title">Metadata Corrections</div>
+        <div class="event-value">35</div>
+        <div class="event-icon">&#9998;</div>
+      </div>
+    </div>
+
+    <!-- Top Referral Sources + Referral Trend -->
+    <div class="section-grid cols-2">
+      <div class="chart-card">
+        <div class="card-title">Top Referral Sources</div>
+        <table class="referral-table">
+          <thead>
+            <tr><th>Referring Dept</th><th>No. Referrals</th><th>% of Total</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="referral-dept"><span class="dept-icon">&#127973;</span> Cardiology</div></td>
+              <td>421</td><td>38%</td>
+            </tr>
+            <tr>
+              <td><div class="referral-dept"><span class="dept-icon">&#127973;</span> Pediatrics</div></td>
+              <td>198</td><td>18%</td>
+            </tr>
+            <tr>
+              <td><div class="referral-dept"><span class="dept-icon">&#127973;</span> General Surgery</div></td>
+              <td>165</td><td>15%</td>
+            </tr>
+            <tr>
+              <td><div class="referral-dept"><span class="dept-icon">&#127973;</span> Oncology</div></td>
+              <td>142</td><td>13%</td>
+            </tr>
+            <tr>
+              <td><div class="referral-dept"><span class="dept-icon">&#127973;</span> Pulmonology</div></td>
+              <td>88</td><td>8%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Referral Trend (Last 7 Days)</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="referralTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Study Workload Distribution -->
+    <div class="chart-card">
+      <div class="card-title">Study Workload Distribution</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Radiologist</th><th>Studies Reported Today</th><th>Avg TAT</th><th>Critical Findings</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="rad-info"><div class="rad-avatar" style="background:#0EA5E9">RKM</div> Dr. Rachel Kim</div></td>
+            <td>88</td><td>48 min</td>
+            <td>3 Critical</td>
+          </tr>
+          <tr>
+            <td><div class="rad-info"><div class="rad-avatar" style="background:#EF4444">JBP</div> Dr. James Park</div></td>
+            <td>79</td><td>55 min</td>
+            <td><span class="badge critical-fill">7 Critical</span></td>
+          </tr>
+          <tr>
+            <td><div class="rad-info"><div class="rad-avatar" style="background:#10B981">ALT</div> Dr. Amanda Torres</div></td>
+            <td>72</td><td>41 min</td>
+            <td>2 Critical</td>
+          </tr>
+          <tr>
+            <td><div class="rad-info"><div class="rad-avatar" style="background:#F97316">MCW</div> Dr. Marcus Webb</div></td>
+            <td>65</td><td>62 min</td>
+            <td><span class="badge critical-fill">9 Critical</span></td>
+          </tr>
+          <tr>
+            <td><div class="rad-info"><div class="rad-avatar" style="background:#8B5CF6">SPH</div> Dr. Sofia Huang</div></td>
+            <td>53</td><td>38 min</td>
+            <td>1 Critical</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div><!-- /operations -->
+
+
+  <!-- =============================== -->
+  <!-- ANALYTICS DASHBOARD             -->
+  <!-- =============================== -->
+  <div id="analytics" class="dashboard-page">
+
+    <!-- Stat Cards -->
+    <div class="stat-cards-grid cols-6">
+      <div class="stat-card">
+        <div class="stat-label">Total Studies</div>
+        <div class="stat-value">2,103</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Growth</div>
+        <div class="stat-value">+8%</div>
+        <div class="stat-sub">vs Prev Period</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg TAT</div>
+        <div class="stat-value">3.1 <span class="unit">hrs</span></div>
+        <div class="stat-sub">Target: &lt; 3.0h</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">STAT Compliance</div>
+        <div class="stat-value">76%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Overdue Cases</div>
+        <div class="stat-value">11.2%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Storage Used</div>
+        <div class="stat-value">54%</div>
+      </div>
+    </div>
+
+    <!-- Studies Trend (full width) -->
+    <div class="chart-card" style="margin-bottom:16px">
+      <div class="card-title-lg">Studies Trend</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="studiesTrendChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Studies by Modality + STAT vs Routine + Storage Trend -->
+    <div class="section-grid cols-3">
+      <div class="chart-card">
+        <div class="card-title-lg">Studies by Modality</div>
+        <div class="chart-wrap" style="height:200px;position:relative">
+          <canvas id="studiesModalityDonut"></canvas>
+        </div>
+        <div class="chart-legend" style="margin-top:12px">
+          <div class="legend-item"><div class="legend-dot" style="background:#4F46E5"></div>CT</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#F97316"></div>MRI</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22C55E"></div>X-Ray</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#8B5CF6"></div>Ultrasound</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#F59E0B"></div>Other</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title-lg">STAT vs Routine</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="statRoutineChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title-lg">Storage Trend</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="storageTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Studies by Technologist + Top Referring Providers + Radiologist RVUs -->
+    <div class="section-grid cols-3">
+      <div class="chart-card">
+        <div class="card-title-lg">Studies Completed by Technologist</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="techStudiesChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title-lg">Top Referring Providers</div>
+        <div class="top-provider-card">
+          <div>
+            <div class="top-provider-name">Dr. Johnson <span class="provider-badge">&#8593; +9%</span></div>
+            <div class="top-provider-clinic">Riverside Medical Center</div>
+          </div>
+          <div class="text-right">
+            <div class="top-provider-count">186</div>
+            <div class="top-provider-sub">Studies</div>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:160px">
+          <canvas id="referringProvidersChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title-lg">Radiologist RVUs</div>
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="radiologistRvuChart"></canvas>
+        </div>
+        <div class="rvu-footer">
+          <span>Total RVUs: <strong>2,340</strong></span>
+          <span>Average RVUs: <strong>334</strong></span>
+        </div>
+      </div>
+    </div>
+  </div><!-- /analytics -->
+
+
+  <!-- =============================== -->
+  <!-- SYSTEM HEALTH DASHBOARD         -->
+  <!-- =============================== -->
+  <div id="system-health" class="dashboard-page">
+
+    <!-- Stat Cards -->
+    <div class="stat-cards-grid cols-5">
+      <div class="stat-card">
+        <div class="stat-label">Total Disk Capacity</div>
+        <div class="stat-value">840 <span class="unit">TB</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Consumed Space</div>
+        <div class="stat-value">54.2%</div>
+        <div class="stat-sub">455.9 TB Utilized</div>
+        <div class="stat-tag">&#8593; +1.7%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Projected Storage Growth</div>
+        <div class="stat-value">+6.8 <span class="unit">TB</span></div>
+        <div class="stat-sub">Current Monthly Rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">System Uptime</div>
+        <div class="stat-value">99.94%</div>
+        <div class="stat-sub">Enterprise Core Health</div>
+        <div class="stat-tag">99.7%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Merges / Splits</div>
+        <div class="stat-value">87 <span class="unit" style="font-size:14px">/ 34</span></div>
+        <div class="stat-sub">+5 new studies since 8AM</div>
+      </div>
+    </div>
+
+    <!-- Storage Growth + Storage Modality + System Alerts -->
+    <div class="section-grid cols-sys">
+      <div class="chart-card">
+        <div class="card-title-lg">Storage Growth</div>
+        <div class="card-subtitle">Archive volume trend (TB)</div>
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="storageGrowthChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title-lg">Storage Usage by Modality</div>
+        <div class="card-subtitle">Comparative distribution and sizing metrics</div>
+        <div class="chart-wrap" style="height:160px;position:relative">
+          <canvas id="storageModalityChart"></canvas>
+          <div class="donut-center">
+            <div class="donut-center-pct">100%</div>
+            <div class="donut-center-label">SHARE</div>
+          </div>
+        </div>
+        <div class="storage-legend">
+          <div class="storage-legend-item"><div class="storage-dot" style="background:#4F46E5"></div>CT 38%</div>
+          <div class="storage-legend-item"><div class="storage-dot" style="background:#22C55E"></div>MRI 35%</div>
+          <div class="storage-legend-item"><div class="storage-dot" style="background:#F97316"></div>X-Ray 14%</div>
+          <div class="storage-legend-item"><div class="storage-dot" style="background:#F59E0B"></div>US 9%</div>
+          <div class="storage-legend-item"><div class="storage-dot" style="background:#8B5CF6"></div>MG 4%</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="alert-header">
+          <div class="card-title" style="margin-bottom:0">System Alerts</div>
+          <span class="badge critical-badge">2 Critical</span>
+        </div>
+        <div class="alert-list">
+          <div class="alert-item high">
+            <div class="alert-type high">HIGH PRIORITY</div>
+            <div class="alert-desc">HL7 Parsing Error</div>
+            <div class="alert-affected">Affected Record: GARCIA, MARIA</div>
+          </div>
+          <div class="alert-item action">
+            <div class="alert-type action">ACTION REQUIRED</div>
+            <div class="alert-desc">Archive Node Offline</div>
+            <div class="alert-affected">Node ID: ARCH-07</div>
+          </div>
+          <div class="alert-item action">
+            <div class="alert-type action">ACTION REQUIRED</div>
+            <div class="alert-desc">DICOM Routing Failure</div>
+            <div class="alert-affected">Destination: SITE-B</div>
+          </div>
+        </div>
+        <div class="view-all-link">VIEW ALL ALERTS</div>
+      </div>
+    </div>
+
+    <!-- Active Users + System Resource Metrics -->
+    <div class="section-grid cols-sys2">
+      <div class="chart-card">
+        <div class="card-title">Active Users</div>
+        <div class="user-list">
+          <div class="user-item">
+            <div class="user-avatar" style="background:linear-gradient(135deg,#0EA5E9,#6366F1)">PS</div>
+            <div class="user-details">
+              <div class="user-name-text">Dr. Priya Sharma</div>
+              <div class="user-role">Chest Radiology &bull; East Wing</div>
+            </div>
+            <div class="user-time">Just Now</div>
+          </div>
+          <div class="user-item">
+            <div class="user-avatar" style="background:linear-gradient(135deg,#10B981,#0EA5E9)">CR</div>
+            <div class="user-details">
+              <div class="user-name-text">Carlos Reyes</div>
+              <div class="user-role">IT Operations &bull; Data Center B</div>
+            </div>
+            <div class="user-time">5m ago</div>
+          </div>
+          <div class="user-item">
+            <div class="user-avatar" style="background:linear-gradient(135deg,#F97316,#F59E0B)">NC</div>
+            <div class="user-details">
+              <div class="user-name-text">Dr. Nathan Cole</div>
+              <div class="user-role">Interventional Rad &bull; Main Campus</div>
+            </div>
+            <div class="user-time">18m ago</div>
+          </div>
+        </div>
+        <div class="view-all-link" style="margin-top:12px">View All Users</div>
+      </div>
+
+      <div class="chart-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div>
+            <div class="card-title-lg">System Resource Metrics</div>
+            <div class="card-subtitle" style="margin-bottom:0">Real-time health monitoring &amp; diagnostics</div>
+          </div>
+          <div class="sys-optimal-badge"><div class="sys-dot"></div> SYSTEM OPTIMAL</div>
+        </div>
+
+        <!-- Processor Core Loads -->
+        <div class="resource-section-title">
+          <span class="resource-icon">&#128187;</span> Processor Core Loads
+          <span class="view-cores-link" style="margin-left:auto">View All Cores &rsaquo;</span>
+        </div>
+        <div class="cores-grid">
+          <div class="core-item">
+            <div class="core-gauge-wrap"><canvas id="core1Gauge"></canvas></div>
+            <div class="core-label">45%</div>
+            <div class="core-name">CORE 01</div>
+            <div class="core-model">Xeon Gold 6248R</div>
+          </div>
+          <div class="core-item">
+            <div class="core-gauge-wrap"><canvas id="core2Gauge"></canvas></div>
+            <div class="core-label" style="color:#F59E0B">71%</div>
+            <div class="core-name">CORE 02</div>
+            <div class="core-model">Xeon Gold 6248R</div>
+          </div>
+          <div class="core-item">
+            <div class="core-gauge-wrap"><canvas id="core3Gauge"></canvas></div>
+            <div class="core-label">28%</div>
+            <div class="core-name">CORE 03</div>
+            <div class="core-model">Xeon Gold 6248R</div>
+          </div>
+          <div class="core-item">
+            <div class="core-gauge-wrap"><canvas id="core4Gauge"></canvas></div>
+            <div class="core-label" style="color:#F59E0B">63%</div>
+            <div class="core-name">CORE 04</div>
+            <div class="core-model">Xeon Gold 6248R</div>
+          </div>
+        </div>
+
+        <!-- Memory & Cache + Network -->
+        <div class="section-grid cols-2" style="margin-bottom:0">
+          <div>
+            <div class="resource-section-title"><span class="resource-icon">&#128190;</span> Memory &amp; Cache</div>
+            <div class="memory-grid">
+              <div class="mem-item">
+                <div class="mem-gauge-wrap"><canvas id="dramGauge"></canvas></div>
+                <div class="mem-details">
+                  <div class="mem-label">DRAM</div>
+                  <div class="mem-pct">82%</div>
+                  <div class="mem-sub">ECC Reg 128GB</div>
+                </div>
+              </div>
+              <div class="mem-item">
+                <div class="mem-gauge-wrap"><canvas id="cacheGauge"></canvas></div>
+                <div class="mem-details">
+                  <div class="mem-label">L3 CACHE</div>
+                  <div class="mem-pct">55%</div>
+                  <div class="mem-sub">33.75MB Static</div>
+                </div>
+              </div>
+            </div>
+            <div class="throughput-row">
+              <div>
+                <div class="throughput-label">TOTAL THROUGHPUT</div>
+              </div>
+              <div class="throughput-value">1.8 GB/s</div>
+            </div>
+          </div>
+          <div>
+            <div class="resource-section-title"><span class="resource-icon">&#128268;</span> Network Interfaces</div>
+            <div class="network-list">
+              <div class="network-item">
+                <div class="network-header">
+                  <span class="network-name">&#9679; ETHERNET 0 (WAN)</span>
+                  <span class="network-pct">34%</span>
+                </div>
+                <div class="network-bar-track"><div class="network-bar mid" style="width:34%"></div></div>
+              </div>
+              <div class="network-item">
+                <div class="network-header">
+                  <span class="network-name" style="color:#F59E0B">&#9679; ETHERNET 1 (INTERNAL)</span>
+                  <span class="network-pct">67%</span>
+                </div>
+                <div class="network-bar-track"><div class="network-bar" style="width:67%;background:#F59E0B"></div></div>
+              </div>
+              <div class="network-item">
+                <div class="network-header">
+                  <span class="network-name" style="color:#22C55E">&#9679; FIBER LINK SFP+</span>
+                  <span class="network-pct">22%</span>
+                </div>
+                <div class="network-bar-track"><div class="network-bar low" style="width:22%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Jobs + Backup + DICOM Failures -->
+    <div class="section-grid cols-3">
+      <div class="chart-card">
+        <div class="card-title">System Jobs Status</div>
+        <div class="jobs-list">
+          <div class="job-item">
+            <div>
+              <div class="job-name">Anonymization Queue</div>
+              <div class="job-bar"></div>
+            </div>
+            <span class="badge running">RUNNING</span>
+          </div>
+          <div class="job-item">
+            <div><div class="job-name">DICOM Prefetch Task</div></div>
+            <span class="badge completed">COMPLETED</span>
+          </div>
+          <div class="job-item">
+            <div><div class="job-name">Weekly Report Gen</div></div>
+            <span class="badge queued">QUEUED</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">&#x1F504; Backup Status</div>
+        <div class="backup-item">
+          <div class="backup-label">Last Backup</div>
+          <div class="backup-value">45m ago</div>
+        </div>
+        <div class="backup-item">
+          <div class="backup-label">Next Scheduled</div>
+          <div class="backup-value">Tomorrow, 2:00 AM</div>
+        </div>
+        <div class="backup-item">
+          <div class="backup-label">Success Rate</div>
+          <div class="backup-value">97.8%</div>
+          <div class="success-bar-track"><div class="success-bar" style="width:97.8%"></div></div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">DICOM Send Failures</div>
+        <div class="dicom-grid">
+          <div>
+            <div class="dicom-stat-label">Failures</div>
+            <div class="dicom-stat-value big">17 <span style="font-size:12px;color:#22C55E">&#8595;5%</span></div>
+          </div>
+          <div>
+            <div class="dicom-stat-label">Top Failing</div>
+            <div class="dicom-stat-value">Cityview PACS</div>
+            <div class="dicom-stat-sub">9 failures recorded</div>
+          </div>
+          <div>
+            <div class="dicom-stat-label">Most Common Error</div>
+            <div class="dicom-stat-value">TLS Cert Expired</div>
+            <div class="dicom-stat-sub">11 occurrences this week</div>
+          </div>
+          <div>
+            <div class="dicom-stat-label">Last Failure</div>
+            <div class="dicom-stat-value">Fri 10:42 AM</div>
+            <div class="dicom-stat-sub">ID: #DICOM-10034</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /system-health -->
+
+
+  <!-- =============================== -->
+  <!-- RADIOLOGIST DASHBOARD           -->
+  <!-- =============================== -->
+  <div id="radiologist" class="dashboard-page">
+
+    <!-- Stat Cards -->
+    <div class="stat-cards-grid cols-5">
+      <div class="stat-card">
+        <div class="stat-label">Total Studies Reported</div>
+        <div class="stat-value">318</div>
+        <div class="stat-delta positive">&#8593; +5% <span>vs last week</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pending Studies</div>
+        <div class="stat-value">47</div>
+        <div class="stat-sub">+6 since 8AM</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Overdue Studies</div>
+        <div class="stat-value">31</div>
+        <div class="stat-delta negative">+8 <span>new since 8AM</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg TAT (Overall)</div>
+        <div class="stat-value">3.4 <span class="unit">hrs</span></div>
+        <div class="stat-sub">Target: &lt; 2.0h &nbsp; +1.4 hrs above target</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg TAT &mdash; Routine</div>
+        <div class="stat-value">4.1 <span class="unit">hrs</span></div>
+        <div class="stat-sub">Target: &lt; 3.0h</div>
+      </div>
+    </div>
+
+    <!-- Studies per Radiologist + TAT by Radiologist -->
+    <div class="section-grid cols-2">
+      <div class="chart-card">
+        <div class="card-title-lg">Studies per Radiologist</div>
+        <div class="card-subtitle">Volume distribution across radiologists</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="studiesPerRadChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+          <div>
+            <div class="card-title-lg">TAT by Radiologist (Modality-wise)</div>
+            <div class="card-subtitle">Turnaround time benchmarks in hours</div>
+          </div>
+          <span class="target-label">Target: 2.0h</span>
+        </div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="tatByRadChart"></canvas>
+        </div>
+        <div class="chart-legend" style="margin-top:8px">
+          <div class="legend-item"><div class="legend-dot" style="background:#4F46E5"></div>CT Scan</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#F97316"></div>MRI</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22C55E"></div>X-Ray</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending & Overdue Trend + Studies by Modality -->
+    <div class="section-grid cols-2">
+      <div class="chart-card">
+        <div class="card-title-lg">Pending and Overdue Trend</div>
+        <div class="card-subtitle">Weekly progression of unread studies</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="pendingOverdueChart"></canvas>
+        </div>
+        <div class="chart-legend" style="margin-top:8px">
+          <div class="legend-item"><div class="legend-dot" style="background:#F97316"></div>Pending</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#EF4444"></div>Overdue</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title-lg">Studies by Modality</div>
+        <div class="chart-wrap" style="height:240px">
+          <canvas id="radStudiesModalityChart"></canvas>
+        </div>
+        <div class="chart-legend" style="margin-top:8px">
+          <div class="legend-item"><div class="legend-dot" style="background:#4F46E5"></div>Study Count</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Studies by Referring Provider + Peer Review -->
+    <div class="section-grid cols-2">
+      <div class="chart-card">
+        <div class="card-title-lg">Studies by Referring Provider</div>
+        <div class="card-subtitle">Top referring providers and groups</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="studiesReferringChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title-lg">Peer Review</div>
+        <div class="peer-grid">
+          <div class="peer-stat">
+            <div class="peer-stat-label">Reviews Completed</div>
+            <div class="peer-stat-value">52</div>
+            <div class="peer-stat-delta">&#8593; +3.4%</div>
+          </div>
+          <div class="peer-stat">
+            <div class="peer-stat-label">Pending Reviews</div>
+            <div class="peer-stat-value">28</div>
+            <div class="peer-stat-delta" style="color:#F97316">&#8595; -2</div>
+          </div>
+          <div class="peer-stat">
+            <div class="peer-stat-label">Discrepancy Rate</div>
+            <div class="peer-stat-value">6.2%</div>
+            <div class="peer-stat-delta" style="color:#EF4444">Above Target (5%)</div>
+          </div>
+          <div class="peer-stat">
+            <div class="peer-stat-label">Avg Review Time</div>
+            <div class="peer-stat-value">6.8 <span style="font-size:14px;font-weight:500">min</span></div>
+            <div class="peer-stat-delta" style="color:#F97316">&#8593; Slower</div>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:100px;margin-top:16px">
+          <canvas id="peerReviewTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div><!-- /radiologist -->
+
+</main><!-- /main-content -->
+
+<!-- ===== DRILL-DOWN MODAL ===== -->
+<div id="drillOverlay" class="drill-overlay">
+  <div class="drill-modal">
+    <div class="drill-header">
+      <div class="drill-nav">
+        <span class="drill-crumb" id="drillCrumb"></span>
+        <span class="drill-sep">›</span>
+        <span class="drill-title-text" id="drillTitle"></span>
+      </div>
+      <button class="drill-close" id="drillCloseBtn">&#10005;</button>
+    </div>
+    <div class="drill-body" id="drillBody"></div>
+  </div>
+</div>
+
+<script src="js/main.js"></script>
+<script>
+/* Populate navbar with logged-in user info */
+document.addEventListener('DOMContentLoaded', () => {
+  const user = window.__authUser;
+  if (!user) return;
+  const el = document.getElementById('navUsername');
+  if (el) el.textContent = user.username || user.email;
+});
+
+/* Sign out */
+async function signOut() {
+  try {
+    await fetch('/auth/logout', { method: 'POST' });
+  } finally {
+    window.location.href = '/login.html';
+  }
+}
+</script>
+</body>
+</html>

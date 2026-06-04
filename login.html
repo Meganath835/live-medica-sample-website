@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — Live Medica</title>
+<link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+
+<div class="auth-card">
+
+  <!-- Brand -->
+  <div class="auth-brand">
+    <div class="auth-brand-icon">+</div>
+    <div>
+      <div class="auth-brand-name">live medica</div>
+      <div class="auth-brand-tagline">Radiology Intelligence</div>
+    </div>
+  </div>
+
+  <h1 class="auth-heading">Welcome back</h1>
+  <p class="auth-sub">Sign in to access your radiology dashboard</p>
+
+  <!-- Alerts -->
+  <div class="alert alert-error" id="errAlert">
+    <span class="alert-icon">&#9888;</span>
+    <span id="errText"></span>
+  </div>
+
+  <!-- Login Form -->
+  <form id="loginForm" novalidate>
+    <div class="form-group">
+      <label class="form-label" for="emailInput">Email Address</label>
+      <input
+        type="email" id="emailInput" name="email"
+        class="form-input" placeholder="you@hospital.com"
+        autocomplete="email" required
+      >
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="pwInput">Password</label>
+      <div class="input-wrap">
+        <input
+          type="password" id="pwInput" name="password"
+          class="form-input" placeholder="••••••••"
+          autocomplete="current-password" required
+        >
+        <button type="button" class="toggle-pw" onclick="togglePw('pwInput', this)" title="Show/hide password">
+          &#128065;
+        </button>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-primary" id="loginBtn">Sign In</button>
+  </form>
+
+  <div class="divider">or continue with</div>
+
+  <!-- Google Button -->
+  <a href="/auth/google" class="btn-google" id="googleBtn">
+    <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+    Sign in with Google
+  </a>
+
+  <p class="auth-footer">
+    Don't have an account? <a href="/register.html">Create account &rarr;</a>
+  </p>
+
+</div>
+
+<script>
+/* ── URL error params ── */
+const params = new URLSearchParams(location.search);
+if (params.get('error') === 'google_failed')
+  showError('Google Sign-In failed. Please try again or use email and password.');
+if (params.get('error') === 'google_not_configured')
+  showError('Google Sign-In is not configured on this server yet.');
+
+/* ── Google button state ── */
+fetch('/auth/google-enabled')
+  .then(r => r.json())
+  .then(({ enabled }) => {
+    if (!enabled) {
+      const btn = document.getElementById('googleBtn');
+      btn.classList.add('disabled');
+      btn.title = 'Google Sign-In is not configured — add credentials to .env';
+    }
+  })
+  .catch(() => {});
+
+/* ── Helpers ── */
+function showError(msg) {
+  document.getElementById('errText').textContent = msg;
+  document.getElementById('errAlert').classList.add('show');
+}
+function clearError() {
+  document.getElementById('errAlert').classList.remove('show');
+}
+function setLoading(on) {
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = on;
+  btn.innerHTML = on
+    ? '<span class="spinner"></span>Signing in…'
+    : 'Sign In';
+}
+function togglePw(inputId, btn) {
+  const f = document.getElementById(inputId);
+  f.type = f.type === 'password' ? 'text' : 'password';
+  btn.style.opacity = f.type === 'text' ? '0.5' : '1';
+}
+
+/* ── Submit ── */
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearError();
+  const email    = e.target.email.value.trim();
+  const password = e.target.password.value;
+  if (!email || !password) return showError('Please fill in all fields.');
+
+  setLoading(true);
+  try {
+    const res  = await fetch('/auth/login', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      window.location.href = '/';
+    } else {
+      showError(data.error || 'Sign in failed. Please check your credentials.');
+      setLoading(false);
+    }
+  } catch {
+    showError('Network error — please check your connection and try again.');
+    setLoading(false);
+  }
+});
+
+/* ── Clear error on input ── */
+document.querySelectorAll('.form-input').forEach(el =>
+  el.addEventListener('input', clearError)
+);
+</script>
+</body>
+</html>

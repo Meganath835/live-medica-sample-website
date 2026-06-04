@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account — Live Medica</title>
+<link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+
+<div class="auth-card">
+
+  <!-- Brand -->
+  <div class="auth-brand">
+    <div class="auth-brand-icon">+</div>
+    <div>
+      <div class="auth-brand-name">live medica</div>
+      <div class="auth-brand-tagline">Radiology Intelligence</div>
+    </div>
+  </div>
+
+  <h1 class="auth-heading">Create your account</h1>
+  <p class="auth-sub">Start monitoring your radiology operations today</p>
+
+  <!-- Alerts -->
+  <div class="alert alert-error" id="errAlert">
+    <span class="alert-icon">&#9888;</span>
+    <span id="errText"></span>
+  </div>
+  <div class="alert alert-success" id="successAlert">
+    <span class="alert-icon">&#10003;</span>
+    <span id="successText"></span>
+  </div>
+
+  <!-- Register Form -->
+  <form id="registerForm" novalidate>
+    <div class="form-group">
+      <label class="form-label" for="usernameInput">Full Name</label>
+      <input
+        type="text" id="usernameInput" name="username"
+        class="form-input" placeholder="Dr. Jane Smith"
+        autocomplete="name" required
+      >
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="emailInput">Email Address</label>
+      <input
+        type="email" id="emailInput" name="email"
+        class="form-input" placeholder="you@hospital.com"
+        autocomplete="email" required
+      >
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="pwInput">Password</label>
+      <div class="input-wrap">
+        <input
+          type="password" id="pwInput" name="password"
+          class="form-input" placeholder="Min. 8 characters"
+          autocomplete="new-password" required minlength="8"
+        >
+        <button type="button" class="toggle-pw" onclick="togglePw('pwInput', this)">&#128065;</button>
+      </div>
+      <!-- Strength bar -->
+      <div class="pw-strength-wrap" id="strengthWrap" style="display:none">
+        <div class="pw-strength-bar">
+          <div class="pw-strength-fill" id="strengthFill" style="width:0%"></div>
+        </div>
+        <div class="pw-strength-label" id="strengthLabel"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="confirmInput">Confirm Password</label>
+      <div class="input-wrap">
+        <input
+          type="password" id="confirmInput" name="confirm"
+          class="form-input" placeholder="Re-enter password"
+          autocomplete="new-password" required
+        >
+        <button type="button" class="toggle-pw" onclick="togglePw('confirmInput', this)">&#128065;</button>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-primary" id="registerBtn">Create Account</button>
+  </form>
+
+  <div class="divider">or sign up with</div>
+
+  <!-- Google Button -->
+  <a href="/auth/google" class="btn-google" id="googleBtn">
+    <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+    Sign up with Google
+  </a>
+
+  <p class="auth-footer">
+    Already have an account? <a href="/login.html">&larr; Sign in</a>
+  </p>
+
+</div>
+
+<script>
+/* ── Google button state ── */
+fetch('/auth/google-enabled')
+  .then(r => r.json())
+  .then(({ enabled }) => {
+    if (!enabled) {
+      const btn = document.getElementById('googleBtn');
+      btn.classList.add('disabled');
+      btn.title = 'Google Sign-In is not configured — add credentials to .env';
+    }
+  })
+  .catch(() => {});
+
+/* ── Helpers ── */
+function showError(msg) {
+  document.getElementById('errText').textContent = msg;
+  document.getElementById('errAlert').classList.add('show');
+  document.getElementById('successAlert').classList.remove('show');
+}
+function showSuccess(msg) {
+  document.getElementById('successText').textContent = msg;
+  document.getElementById('successAlert').classList.add('show');
+  document.getElementById('errAlert').classList.remove('show');
+}
+function clearAlerts() {
+  document.getElementById('errAlert').classList.remove('show');
+  document.getElementById('successAlert').classList.remove('show');
+}
+function setLoading(on) {
+  const btn = document.getElementById('registerBtn');
+  btn.disabled = on;
+  btn.innerHTML = on
+    ? '<span class="spinner"></span>Creating account…'
+    : 'Create Account';
+}
+function togglePw(inputId, btn) {
+  const f = document.getElementById(inputId);
+  f.type = f.type === 'password' ? 'text' : 'password';
+  btn.style.opacity = f.type === 'text' ? '0.5' : '1';
+}
+
+/* ── Password strength meter ── */
+document.getElementById('pwInput').addEventListener('input', function () {
+  const val = this.value;
+  const wrap = document.getElementById('strengthWrap');
+  if (!val) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+
+  let score = 0;
+  if (val.length >= 8)  score++;
+  if (val.length >= 12) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+
+  const fill  = document.getElementById('strengthFill');
+  const label = document.getElementById('strengthLabel');
+  const levels = [
+    { pct: '20%', color: '#EF4444', text: 'Very weak' },
+    { pct: '40%', color: '#F97316', text: 'Weak' },
+    { pct: '60%', color: '#F59E0B', text: 'Fair' },
+    { pct: '80%', color: '#22C55E', text: 'Strong' },
+    { pct: '100%',color: '#16A34A', text: 'Very strong' },
+  ];
+  const lv = levels[Math.min(score, 4)];
+  fill.style.width      = lv.pct;
+  fill.style.background = lv.color;
+  label.textContent     = lv.text;
+  label.style.color     = lv.color;
+});
+
+/* ── Submit ── */
+document.getElementById('registerForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearAlerts();
+
+  const username = e.target.username.value.trim();
+  const email    = e.target.email.value.trim();
+  const password = e.target.password.value;
+  const confirm  = e.target.confirm.value;
+
+  if (!username || !email || !password || !confirm)
+    return showError('Please fill in all fields.');
+  if (password.length < 8)
+    return showError('Password must be at least 8 characters.');
+  if (password !== confirm)
+    return showError('Passwords do not match.');
+
+  setLoading(true);
+  try {
+    const res  = await fetch('/auth/register', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, username, password }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showSuccess('Account created! Redirecting to sign in…');
+      e.target.reset();
+      document.getElementById('strengthWrap').style.display = 'none';
+      setTimeout(() => window.location.href = '/login.html', 1800);
+    } else {
+      showError(data.error || 'Registration failed. Please try again.');
+      setLoading(false);
+    }
+  } catch {
+    showError('Network error — please check your connection and try again.');
+    setLoading(false);
+  }
+});
+
+/* ── Clear alerts on input ── */
+document.querySelectorAll('.form-input').forEach(el =>
+  el.addEventListener('input', clearAlerts)
+);
+</script>
+</body>
+</html>
